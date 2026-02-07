@@ -1,3 +1,6 @@
+require 'bundler/setup'
+Bundler.require
+
 require "sinatra"
 require "json"
 require "net/http"
