@@ -8,6 +8,20 @@ require 'net/http'
 require 'rufus-scheduler'
 
 class MCPAdapter < Sinatra::Base
+  # Enable CORS for all routes
+  before do
+    headers 'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+            'Access-Control-Allow-Credentials' => 'true',
+            'Access-Control-Max-Age' => '86400'
+  end
+
+  # Handle OPTIONS requests for CORS preflight
+  options '*' do
+    200
+  end
+
   configure do
     set :port, ENV.fetch('PORT', 10000)
     set :bind, '0.0.0.0'
@@ -25,16 +39,48 @@ class MCPAdapter < Sinatra::Base
     <<~HTML
       <!DOCTYPE html>
       <html>
-      <head><title>MCP Adapter</title></head>
-      <body style="font-family: Arial; padding: 20px;">
+      <head>
+        <title>MCP Adapter</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+          .status { padding: 10px; border-radius: 5px; margin: 10px 0; }
+          .good { background-color: #d4edda; color: #155724; }
+          .bad { background-color: #f8d7da; color: #721c24; }
+          code { background-color: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+          ul { line-height: 1.6; }
+          .cors-info { background-color: #e7f3ff; color: #004085; padding: 10px; border-radius: 5px; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
         <h2>✅ MCP Adapter is Running</h2>
-        <p><strong>UptimeRobot API Key:</strong> #{api_key_set}</p>
-        <p><strong>Endpoints:</strong></p>
+        
+        <div class="cors-info">
+          <strong>🔓 CORS Enabled:</strong> All origins allowed
+        </div>
+        
+        <div class="status #{ENV['UPTIMEROBOT_API_KEY'] ? 'good' : 'bad'}">
+          <strong>UptimeRobot API Key:</strong> #{api_key_set}
+          #{ENV['UPTIMEROBOT_API_KEY'] ? 'Configured' : 'Not configured'}
+        </div>
+        
+        <h3>Available Endpoints:</h3>
         <ul>
-          <li>GET <code>/healthz</code> - Health check</li>
-          <li>POST <code>/v1/chat/completions</code> - OpenAI-compatible API</li>
-          <li>POST <code>/chat</code> - Simple chat API</li>
+          <li>GET <code>/</code> - This status page</li>
+          <li>GET <code>/healthz</code> - Health check endpoint</li>
+          <li>POST <code>/v1/chat/completions</code> - OpenAI-compatible API endpoint</li>
+          <li>POST <code>/chat</code> - Simple chat API endpoint</li>
+          <li>OPTIONS <code>/*</code> - CORS preflight requests</li>
         </ul>
+        
+        <h3>CORS Headers:</h3>
+        <ul>
+          <li><code>Access-Control-Allow-Origin: *</code> (all origins)</li>
+          <li><code>Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS</code></li>
+          <li><code>Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With</code></li>
+          <li><code>Access-Control-Allow-Credentials: true</code></li>
+          <li><code>Access-Control-Max-Age: 86400</code></li>
+        </ul>
+        
         <p><em>Deployed: #{Time.now}</em></p>
       </body>
       </html>
@@ -143,12 +189,34 @@ class MCPAdapter < Sinatra::Base
   end
 
   # -------------------------
+  # CORS TEST ENDPOINT
+  # -------------------------
+  get '/cors-test' do
+    content_type :json
+    {
+      cors_enabled: true,
+      timestamp: Time.now.to_i,
+      message: 'CORS is enabled for this endpoint',
+      allowed_origins: '*',
+      allowed_methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      headers: {
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers' => 'Content-Type, Authorization, X-Requested-With',
+        'Access-Control-Allow-Credentials' => 'true'
+      }
+    }.to_json
+  end
+
+  # -------------------------
   # STARTUP
   # -------------------------
   if __FILE__ == $0
     puts '=' * 50
-    puts 'MCP Adapter Starting...'
+    puts '🔓 MCP Adapter with CORS Starting...'
     puts "Port: #{ENV.fetch('PORT', 10000)}"
+    puts "Bind: 0.0.0.0"
+    puts "CORS: Enabled for all origins (*)"
     puts "UptimeRobot API: #{ENV['UPTIMEROBOT_API_KEY'] ? '✅ Set' : '❌ Not set'}"
     puts '=' * 50
     
