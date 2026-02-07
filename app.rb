@@ -146,6 +146,15 @@ get "/" do
 end
 
 # -------------------------
+# RENDER HEALTH CHECK ENDPOINT
+# -------------------------
+get "/healthz" do
+  status 200
+  content_type :text/plain
+  "OK"
+end
+
+# -------------------------
 # OPENAI-COMPATIBLE ENDPOINT
 # -------------------------
 post "/v1/chat/completions" do
